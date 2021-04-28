@@ -16,6 +16,9 @@ CreateThread(function()
     for i = 1, 1024 do
         MumbleCreateChannel(i)
     end
+	if GetConvarInt('voice_enableRadioSubmix', 0) == 1 then
+		logger.warn('The convar \'voice_enableRadioSubmix\' is currently deprecated, please use \'voice_enableSubmix\' instead.')
+	end
 end)
 
 RegisterNetEvent('playerJoined', function()
@@ -80,3 +83,11 @@ RegisterCommand('mute', function(source, args)
 		end
 	end
 end, true)
+
+if GetConvarInt('voice_externalDisallowJoin', 0) == 1 then
+	AddEventHandler('playerConnecting', function(playerName, kickReason, deferral)
+		deferral.defer()
+		Wait(0)
+		deferral.done('This server is not accepting connections.')
+	end)
+end

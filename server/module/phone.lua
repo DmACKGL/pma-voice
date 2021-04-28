@@ -1,33 +1,36 @@
 --- removes a player from the call for everyone in the call.
 ---@param source number the player to remove from the call
----@param currentChannel number the call channel to remove them from
-function removePlayerFromCall(source, currentChannel)
-    callData[currentChannel] = callData[currentChannel] or {}
-    for player, _ in pairs(callData[currentChannel]) do
+---@param callChannel number the call channel to remove them from
+function removePlayerFromCall(source, callChannel)
+    logger.info('[phone] Removed %s from call %s', source, callChannel)
+
+    callData[callChannel] = callData[callChannel] or {}
+    for player, _ in pairs(callData[callChannel]) do
         TriggerClientEvent('pma-voice:removePlayerFromCall', player, source)
     end
-    callData[currentChannel][source] = nil
+    callData[callChannel][source] = nil
     voiceData[source] = voiceData[source] or defaultTable(source)
     voiceData[source].call = 0
 end
 
 --- adds a player to a call
 ---@param source number the player to add to the call 
----@param channel number the call channel to add them to
-function addPlayerToCall(source, channel)
+---@param callChannel number the call channel to add them to
+function addPlayerToCall(source, callChannel)
+    logger.info('[phone] Added %s to call %s', source, callChannel)
     -- check if the channel exists, if it does set the varaible to it
     -- if not create it (basically if not callData make callData)
-    callData[channel] = callData[channel] or {}
-    for player, _ in pairs(callData[channel]) do
+    callData[callChannel] = callData[callChannel] or {}
+    for player, _ in pairs(callData[callChannel]) do
         -- don't need to send to the source because they're about to get sync'd!
         if player ~= source then
             TriggerClientEvent('pma-voice:addPlayerToCall', player, source)
         end
     end
-    callData[channel][source] = false
+    callData[callChannel][source] = false
     voiceData[source] = voiceData[source] or defaultTable(source)
-    voiceData[source].call = channel
-    TriggerClientEvent('pma-voice:syncCallData', source, callData[channel])
+    voiceData[source].call = callChannel
+    TriggerClientEvent('pma-voice:syncCallData', source, callData[callChannel])
 end
 
 --- set the players call channel
@@ -59,7 +62,6 @@ RegisterNetEvent('pma-voice:setPlayerCall', function(callChannel)
     setPlayerCall(source, callChannel)
 end)
 
-
 function setTalkingOnCall(talking)
 	if GetConvarInt('voice_enablePhones', 1) ~= 1 then return end
     local source = source
@@ -67,11 +69,15 @@ function setTalkingOnCall(talking)
     local plyVoice = voiceData[source]
     local callTbl = callData[plyVoice.call]
     if callTbl then
+        logger.info('[phone] %s %s talking in call %s', source, talking and 'started' or 'stopped', plyVoice.call)
         for player, _ in pairs(callTbl) do
             if player ~= source then
+                logger.verbose('[call] Sending event to %s to tell them that %s is talking', player, source)
                 TriggerClientEvent('pma-voice:setTalkingOnCall', player, source, talking)
             end
         end
+    else
+        logger.info('[phone] %s tried to talk in call %s, but it doesnt exist.', source, plyVoice.call)
     end
 end
 RegisterNetEvent('pma-voice:setTalkingOnCall', setTalkingOnCall)
